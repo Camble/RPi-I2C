@@ -1,13 +1,13 @@
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
 
-global bool activityLed = true;
+bool activityLed = true;
 unsigned int pin = 1; // ADC0
 
 unsigned int LEDPin = 1; // Onboard LED
 unsigned int data = 0;
 unsigned int vIndex = 1;
-unsigned int[6] voltages = { 0, 0, 0, 0, 0, 0 }; // 0 = average of 1-5
+unsigned int voltages[6] = { 0, 0, 0, 0, 0, 0 }; // 0 = average of 1-5
 
 unsigned long previousRead = 0; // millis() of the previous analogRead()
 
@@ -30,7 +30,6 @@ void flashLed(unsigned int delay, unsigned int n) {
       digitalWrite(LEDPin, HIGH);
       tws_delay(delay);
       digitalWrite(LEDPin, LOW);
-      tws_delay(delay/2);
     }
   }
 }
@@ -51,7 +50,7 @@ void readVoltage(unsigned int p) {
     }
     // Total the values
     int sum = 0;
-    for (i = 1; i < 6; i++) {
+    for (int i = 1; i < 6; i++) {
       sum += voltages[i];
     }
     // Re-calculate the average
