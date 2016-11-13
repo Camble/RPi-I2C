@@ -26,11 +26,11 @@ def writeNumber(value):
 def getVoltage():
   # write V to request voltage
   time.sleep(0.05)
-  data = [None] * 2
+  data = None
   for i in range(0, 1):
-    data[i] = chr(bus.read_byte(address))
-  value = struct.unpack("<h", data[0])
-  value += struct.unpack(">h", data[1])
+    data += chr(bus.read_byte(address))
+  value = struct.unpack("<h", data)
+  value += struct.unpack(">h", data)
   return value
 
 while True:
