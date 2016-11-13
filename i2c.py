@@ -25,10 +25,10 @@ def writeNumber(value):
 def getVoltage():
   # write V to request voltage
   sleep(0.05)
-    data = ""
-    for i in range(0, 5):
-      data[i] = chr(bus.read_byte(address))
-    return data
+  data = ""
+  for i in range(0, 5):
+    data[i] = chr(bus.read_byte(address))
+  return data
 
 def readNumber():
   number = bus.read_byte(address)
