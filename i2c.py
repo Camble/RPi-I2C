@@ -8,6 +8,7 @@
 # source: https://github.com/Camble/RPi-I2C
 
 import smbus
+import struct
 import time
 
 bus = smbus.SMBus(1)
@@ -25,15 +26,12 @@ def writeNumber(value):
 def getVoltage():
   # write V to request voltage
   time.sleep(0.05)
-  data = [None] * 6
-  for i in range(0, 5):
+  data = [None] * 2
+  for i in range(0, 1):
     data[i] = chr(bus.read_byte(address))
-  return data
-
-def readNumber():
-  number = bus.read_byte(address)
-  # number = bus.read_byte_data(address, 1)
-  return number
+  value = struct.unpack("<h", data[0])
+  value += struct.unpack(">h", data[1])
+  return value
 
 while True:
   var = input("Request? ")
