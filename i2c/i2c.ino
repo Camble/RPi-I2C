@@ -59,13 +59,18 @@ void readVoltage(unsigned int p) {
 }
 
 void requestEvent() {
+  voltages[0] = 65535;
   char lo = voltages[0] & 0xFF;
   char hi = voltages[0] >> 8;
+  TinyWireS.send(lo);
+  TinyWireS.send(hi);
+  /*
   uint8_t data[2] = { lo, hi };
   for (int i = 0; i <= 2; i++) {
     TinyWireS.send(data[i]);
     flashLed(100, 2);
   }
+  */
 }
 
 void receiveEvent(uint8_t howMany) {

@@ -26,11 +26,11 @@ def writeNumber(value):
 def getVoltage():
   # write V to request voltage
   time.sleep(0.05)
-  data = None
-  for i in range(0, 1):
-    data += chr(bus.read_byte(address))
+  data = ""
+  for i in range(2):
+    data = data + chr(bus.read_byte(address))
   value = struct.unpack("<h", data)
-  value += struct.unpack(">h", data)
+  value = struct.unpack(">h", data)
   return value
 
 while True:
@@ -42,8 +42,8 @@ while True:
   print "Sent \"" + str(var) + "\" to the ATTiny"
   time.sleep(0.1)
 
-  voltages = getVoltage()
-  print "Average voltage: " + voltages[0]
-  print "Values used: ",
-  for i in range(len(voltages)):
-    print voltages[i],
+  voltage = getVoltage()
+  print "Average voltage: " + str(voltage)
+  #print "Values used: ",
+  #for i in range(len(voltages)):
+  #  print voltages[i],
