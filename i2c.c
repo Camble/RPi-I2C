@@ -59,11 +59,10 @@ void readVoltage(unsigned int p) {
 }
 
 void requestEvent() {
-  // Take voltages[0]
-  // Send both bytes
-  // flashLed()
-  flashLed(150, 2);
-  TinyWireS.send(data);
+  for (unsigned int i = 0; i <= 5, i++) {
+    TinyWireS.send(voltages[i]);
+    flashLed(100, 2);
+  }
 }
 
 void receiveEvent(uint8_t howMany) {
