@@ -24,8 +24,8 @@ def writeNumber(value):
 
 def getVoltage():
   # write V to request voltage
-  sleep(0.05)
-  data = ""
+  time.sleep(0.05)
+  data = [None] * 6
   for i in range(0, 5):
     data[i] = chr(bus.read_byte(address))
   return data
@@ -40,8 +40,8 @@ while True:
   if not var:
     continue
 
-  writeNumber(var)
-  print "Sent \"" + var + "\" to the ATTiny"
+  # writeNumber(var)
+  print "Sent \"" + str(var) + "\" to the ATTiny"
   time.sleep(0.1)
 
   voltages = getVoltage()
