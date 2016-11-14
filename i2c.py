@@ -28,7 +28,7 @@ def getVoltage():
   time.sleep(0.05)
   data = [None] * 2
   for i in range(2):
-    data = data + chr(bus.read_byte(address))
+    data[i] = chr(bus.read_byte(address))
   #value = struct.unpack("<h", data)
   #value = struct.unpack(">h", data)
   value  = data[0] << 8 | data[1]
