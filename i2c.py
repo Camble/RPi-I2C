@@ -1,10 +1,10 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-# date: 03/11/16
+# title: I2C Master Script
+# desription: Periodically requests voltage values from I2C slave
 # author: Camble
-# version: 1.0a
-# name: I2C stuff
-# description:
+# date 2016-11-15
+# version: 0.1
 # source: https://github.com/Camble/RPi-I2C
 
 import smbus
