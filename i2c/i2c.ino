@@ -1,6 +1,31 @@
 #include <TinyWireS.h>
+// --------------- CONSTANTS ---------------
 #define I2C_SLAVE_ADDRESS 0x4
 
+// --------------- TYPEDEF ---------------
+typedef void(*task_function)(void *arg); // Function pointer for tasks
+typedef enum {BOOTUP, STABLE, SHUTDOWN} State;
+
+
+
+
+State current_state = BOOTUP;
+
+// --------------- TASKS ---------------
+struct Task {
+  void *func;
+
+  uint16_t startDelaySecs;
+  uint16_t delayMillis;
+};
+
+//struct Task Tasks[1];
+
+int createTask(task_function function, int delay) {
+
+  return -1;
+}
+// --------------- STATIC VARIABLES ---------------
 bool activityLed = true;
 unsigned int pin = 1; // ADC0
 
@@ -12,6 +37,10 @@ unsigned int voltages[6] = { 0 }; // 0 = average of 1-5
 unsigned long previousRead = 0; // millis() of the previous analogRead()
 
 void setup() {
+  // createTask(readBatteryVoltage) // checks the battery voltage
+  // createTask(checkUserState) // checks the state of the power switch (user input)
+
+
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(receiveEvent);
   TinyWireS.onRequest(requestEvent);
@@ -23,7 +52,7 @@ void loop() {
   TinyWireS_stop_check();
   readVoltage(pin);
 }
-
+// --------------- FUNCTIONS ---------------
 void flashLed(unsigned int delay, unsigned int n) {
   if (activityLed == true) {
     for (int i = 0; i <= n; i++) {
@@ -58,7 +87,10 @@ void readVoltage(unsigned int p) {
   }
 }
 
+// --------------- I2C ---------------
 void requestEvent() {
+  // Writes the current State and battery information to the I2C bus
+
   voltages[0] = 65535;
   char lo = voltages[0] & 0xFF;
   char hi = voltages[0] >> 8;
@@ -74,6 +106,9 @@ void requestEvent() {
 }
 
 void receiveEvent(uint8_t howMany) {
+  // Can take instruction from the I2C master python script
+  // eg. change polling frequency of battery Reads
+  // eg. enable/disable power switch
   while(TinyWireS.available()) {
     flashLed(150, 2);
     data = TinyWireS.receive();
