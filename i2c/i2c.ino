@@ -2,7 +2,9 @@
 #define I2C_SLAVE_ADDRESS 0x4
 #define MAX_TASKS 4
 #define CHECK_STATE_INTERVAL 500
+#define CHECK_STATE_DELAY 5000
 #define BATTERY_READ_INTERVAL 2500
+
 
 typedef void(*TaskFunction)(); // Function pointer for tasks
 
@@ -108,7 +110,7 @@ void readBatteryVoltage() {
 }
 
 /* Checks the state of the power switch */
-void checkUserState() {
+void checkState() {
   int switch_state = digitalRead(SwitchPin);
   if (switch_state == 1) { // subject to change (inverse)
     system_state.current_state = SHUTDOWN;
@@ -166,13 +168,10 @@ void setup() {
 
   // Create some tasks
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
-  int task_result2 = createTask(checkUserState, CHECK_STATE_INTERVAL, 0, -1);
+  int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
   if ((task_result < 0) || (task_result2 < 0)) {
     flashLed(100, 10);
   }
-
-  // TODO current_state = RUNNING; // implement as a task with a start delay
-
 }
 
 void loop() {
