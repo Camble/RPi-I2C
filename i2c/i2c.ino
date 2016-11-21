@@ -1,22 +1,33 @@
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
 #define MAX_TASKS 4
+#define CHECK_STATE_INTERVAL 500
+#define BATTERY_READ_INTERVAL 2500
 
-typedef enum state {BOOTUP, STABLE, SHUTDOWN} State;
 typedef void(*TaskFunction)(); // Function pointer for tasks
 
 bool activityLed = true;
-uint8_t ADCpin = 1; // ADC0
 uint8_t LEDPin = 1; // Onboard LED
+uint8_t ADCPin = 2; // ADC0             (?)
+uint8_t SwitchPin = 3; // Power switch   (?)
 
 uint16_t vIndex = 1;
-uint16_t voltages[6] = { 0 }; // [0] = latest average
+uint16_t voltages[5] = { 0 };
 
 uint16_t data = 0;
 
+// --------------- STATE ---------------
+typedef enum state {BOOTUP, RUNNING, SHUTDOWN} State;
+
+typedef struct {
+  State current_state;
+  uint16_t battery_voltage;
+} SystemState;
+
+SystemState system_state;
+
 // --------------- TASKS ---------------
 typedef struct {
-  //void *arg;
   TaskFunction func;
   int16_t count;
   uint16_t max_count;
@@ -32,7 +43,6 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
   if (num_tasks == MAX_TASKS) {
     for (int i = 0; i < num_tasks; i++) {
       if (all_tasks[i].count >= all_tasks[i].max_count) {
-        //all_tasks[i].arg = arg;
         all_tasks[i].func = function;
         all_tasks[i].max_count = repeat;
         all_tasks[i].count = 0;
@@ -43,7 +53,6 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
     return -1;
   }
   else {
-    //all_tasks[current_task].arg = arg;
     all_tasks[current_task].func = function;
     all_tasks[current_task].max_count = repeat;
     all_tasks[current_task].count = 0;
@@ -57,16 +66,17 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
 void ExecuteTasks() {
   if(num_tasks == 0) return;
   for (int i = 0; i < num_tasks; i++) {
-    if (all_tasks[i].count >= all_tasks[i].max_count) return;
+    if ((all_tasks[i].count >= all_tasks[i].max_count) && (all_tasks[i].max_count > -1)) { return; }
     if (all_tasks[i].previous_millis + all_tasks[i].delay_millis >= millis()) {
       all_tasks[i].previous_millis = millis();
+      if (all_tasks[i].max_count > -1) { all_tasks[i].count++; } // Don't bother to count for infinite tasks
       all_tasks[i].func();
     }
   }
 }
 
 // --------------- FUNCTIONS ---------------
-/* Flashes th activity LED */
+/* Flashes the activity LED */
 // TODO re-impliment this, tws_delay may cause problems
 void flashLed(unsigned int delay, unsigned int n) {
   if (activityLed == true) {
@@ -79,30 +89,39 @@ void flashLed(unsigned int delay, unsigned int n) {
 }
 
 /* Reads the pin voltage and stores the
-   average of the last 5 reads in voltages[0] */
+   average of the last 5 reads in SystemState.battery_voltage */
 void readBatteryVoltage() {
   // Read the voltage
   flashLed(300, 1);
-  voltages[vIndex] = analogRead(ADCpin);
+  voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
-  if (vIndex > 5) {
-    vIndex = 1;
+  if (vIndex > 4) {
+    vIndex = 0;
   }
   // Total the values
   int sum = 0;
-  for (int i = 1; i < 6; i++) {
+  for (int i = 1; i < 5; i++) {
     sum += voltages[i];
   }
   // Re-calculate the average
-  voltages[0] = sum / 5;
+  system_state.battery_voltage = sum / 5;
 }
 
+/* Checks the state of the power switch */
 void checkUserState() {
+  int switch_state = digitalRead(SwitchPin);
+  if (switch_state == 1) { // subject to change (inverse)
+    system_state.current_state = SHUTDOWN;
+  }
+  else {
+    system_state.current_state = RUNNING;
+  }
 }
 
 // --------------- I2C ---------------
 void tws_requestEvent() {
-  // Writes the current State and battery information to the I2C bus
+  // Somehow writes the SystemState struct to the I2C bus
+
   voltages[0] = 65535;
   char lo = voltages[0] & 0xFF;
   char hi = voltages[0] >> 8;
@@ -128,7 +147,7 @@ void tws_receiveEvent(uint8_t howMany) {
 }
 
 void setup() {
-  State current_state = BOOTUP;
+  system_state.current_state = BOOTUP;
 
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
@@ -137,14 +156,23 @@ void setup() {
 
   // Setup the pins
   pinMode(LEDPin, OUTPUT);
-  pinMode(ADCpin, INPUT);
+  pinMode(ADCPin, INPUT);
+  pinMode(SwitchPin, INPUT);
 
   // Turn of the activity LED
   digitalWrite(LEDPin, LOW);
 
+  // TODO Add keep alive digitalWrite();
+
   // Create some tasks
-  int result = createTask(readBatteryVoltage, 1000, 0, -1);
-  result = createTask(checkUserState, 1000, 500, -1);
+  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
+  int task_result2 = createTask(checkUserState, CHECK_STATE_INTERVAL, 0, -1);
+  if ((task_result < 0) || (task_result2 < 0)) {
+    flashLed(100, 10);
+  }
+
+  // TODO current_state = RUNNING; // implement as a task with a start delay
+
 }
 
 void loop() {
