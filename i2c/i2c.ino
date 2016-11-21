@@ -124,9 +124,8 @@ void checkState() {
 void tws_requestEvent() {
   // Somehow writes the SystemState struct to the I2C bus
 
-  voltages[0] = 65535;
-  char lo = voltages[0] & 0xFF;
-  char hi = voltages[0] >> 8;
+  char lo = system_state.battery_voltage & 0xFF;
+  char hi = system_state.battery_voltage >> 8;
   TinyWireS.send(lo);
   TinyWireS.send(hi);
   /*
