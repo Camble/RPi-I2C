@@ -5,13 +5,13 @@
 #define CHECK_STATE_DELAY 5000
 #define BATTERY_READ_INTERVAL 2500
 
-
 typedef void(*TaskFunction)(); // Function pointer for tasks
 
 bool activityLed = true;
-uint8_t LEDPin = 1; // Onboard LED
-uint8_t ADCPin = 2; // ADC0             (?)
-uint8_t SwitchPin = 3; // Power switch   (?)
+int LEDPin = 1; // Onboard LED
+int ADCPin = A1; // ADC0                 (subject to change)
+int SwitchPin = 3; // Power switch   (subject to change)
+int AlivePin = 4; // Keep-alive          (subject to change)
 
 uint16_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
@@ -67,7 +67,7 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
 }
 
 void ExecuteTasks() {
-  if(num_tasks == 0) return;
+  if (num_tasks == 0) { return; }
   for (int i = 0; i < num_tasks; i++) {
     // If max_count has been reached, skip the task
     if ((all_tasks[i].count >= all_tasks[i].max_count) && (all_tasks[i].max_count > -1)) {
@@ -87,7 +87,7 @@ void ExecuteTasks() {
 
 // --------------- FUNCTIONS ---------------
 /* Flashes the activity LED */
-// TODO re-impliment this, tws_delay may cause problems
+// TODO re-impliment this if tws_delay causes problems
 void flashLed(unsigned int delay, unsigned int n) {
   if (activityLed == true) {
     for (int i = 0; i <= n; i++) {
@@ -98,8 +98,10 @@ void flashLed(unsigned int delay, unsigned int n) {
   }
 }
 
-/* Reads the pin voltage and stores the
-   average of the last 5 reads in SystemState.battery_voltage */
+/* Reads the pin voltage and stores
+ * the average of thelast 5 reads in
+ * SystemState.battery_voltage
+ */
 void readBatteryVoltage() {
   // Read the voltage
   flashLed(300, 1);
@@ -129,32 +131,32 @@ void checkState() {
 }
 
 // --------------- I2C ---------------
+/* Somehow writes the SystemState struct to the I2C bus
+ */
 void tws_requestEvent() {
-  // Somehow writes the SystemState struct to the I2C bus
+  // Copy the system_state struct into a byte array
+  void* p = &system_state;
+  uint8_t buffer[sizeof(SystemState)];
+  memcpy(buffer, p, sizeof(SystemState));
 
-  char lo = system_state.battery_voltage & 0xFF;
-  char hi = system_state.battery_voltage >> 8;
-  TinyWireS.send(lo);
-  TinyWireS.send(hi);
-  /*
-  uint8_t data[2] = { lo, hi };
-  for (int i = 0; i <= 2; i++) {
-    TinyWireS.send(data[i]);
-    flashLed(100, 2);
+  // Write buffer to I2C
+  for (int i = 0; i < sizeof(buffer); i++) {
+    TinyWireS.send(buffer[i]);
+    flashLed(75, 1);
   }
-  */
 }
-
+/* Used to take instructions from the I2C master python script
+ * eg. change polling frequency of battery Reads
+ * eg. enable/disable power switch
+ */
 void tws_receiveEvent(uint8_t howMany) {
-  // Can take instruction from the I2C master python script
-  // eg. change polling frequency of battery Reads
-  // eg. enable/disable power switch
   while(TinyWireS.available()) {
     flashLed(150, 2);
     data = TinyWireS.receive();
   }
 }
 
+// --------------- START ---------------
 void setup() {
   system_state.current_state = BOOTUP;
 
@@ -167,11 +169,13 @@ void setup() {
   pinMode(LEDPin, OUTPUT);
   pinMode(ADCPin, INPUT);
   pinMode(SwitchPin, INPUT);
+  pinMode(AlivePin, OUTPUT);
 
   // Turn of the activity LED
   digitalWrite(LEDPin, LOW);
 
-  // TODO Add keep alive digitalWrite();
+  // Turn on the keep-alive
+  digitalWrite(AlivePin, HIGH);
 
   // Create some tasks
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
@@ -185,3 +189,4 @@ void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
+
