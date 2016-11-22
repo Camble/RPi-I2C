@@ -1,3 +1,4 @@
+#include <DigiKeyboard.h>
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
 #define MAX_TASKS 4
@@ -10,8 +11,8 @@ typedef void(*TaskFunction)(); // Function pointer for tasks
 bool activityLed = true;
 int LEDPin = 1; // Onboard LED
 int ADCPin = A1; // ADC0                 (subject to change)
-int SwitchPin = 3; // Power switch   (subject to change)
-int AlivePin = 4; // Keep-alive          (subject to change)
+int SwitchPin = PB3; // Power switch   (subject to change)
+int AlivePin = PB4; // Keep-alive          (subject to change)
 
 uint16_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
@@ -104,7 +105,7 @@ void flashLed(unsigned int delay, unsigned int n) {
  */
 void readBatteryVoltage() {
   // Read the voltage
-  flashLed(300, 1);
+  DigiKeyboard.println("Reading the battery voltage.");
   voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
   if (vIndex > 4) {
@@ -121,6 +122,7 @@ void readBatteryVoltage() {
 
 /* Checks the state of the power switch */
 void checkState() {
+  DigiKeyboard.println("Checking the switch state.");
   int switch_state = digitalRead(SwitchPin);
   if (switch_state == 1) { // subject to change (inverse)
     system_state.current_state = SHUTDOWN;
@@ -158,30 +160,39 @@ void tws_receiveEvent(uint8_t howMany) {
 
 // --------------- START ---------------
 void setup() {
+  DigiKeyboard.println("...in setup()");
+
   system_state.current_state = BOOTUP;
+  DigiKeyboard.println("current_state = BOOTUP");
 
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
 
+  DigiKeyboard.println("I2C setup complete.");
+
   // Setup the pins
   pinMode(LEDPin, OUTPUT);
   pinMode(ADCPin, INPUT);
   pinMode(SwitchPin, INPUT);
-  pinMode(AlivePin, OUTPUT);
+  //pinMode(AlivePin, OUTPUT);
+  DigiKeyboard.println("Pin setup complete.");
 
   // Turn of the activity LED
   digitalWrite(LEDPin, LOW);
-
+  DigiKeyboard.println("LED off.");
   // Turn on the keep-alive
-  digitalWrite(AlivePin, HIGH);
+  //digitalWrite(AlivePin, HIGH);
 
   // Create some tasks
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
   int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
   if (task_result + task_result2 < 2) {
-    flashLed(100, 10);
+    DigiKeyboard.println("One or more tasks could not be created.");
+  }
+  else {
+    DigiKeyboard.println("Tasks created successfully.");
   }
 }
 
@@ -189,4 +200,3 @@ void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
-
