@@ -4,15 +4,16 @@
 #define MAX_TASKS 4
 #define CHECK_STATE_INTERVAL 500
 #define CHECK_STATE_DELAY 5000
-#define BATTERY_READ_INTERVAL 2500
+#define BATTERY_READ_INTERVAL 5000
+#define BATTERY_READ_DELAY 0
 
 typedef void(*TaskFunction)(); // Function pointer for tasks
 
 bool activityLed = true;
 int LEDPin = 1; // Onboard LED
-int ADCPin = A1; // ADC0                 (subject to change)
-int SwitchPin = PB3; // Power switch   (subject to change)
-int AlivePin = PB4; // Keep-alive          (subject to change)
+int ADCPin = A1; // ADC0
+int SwitchPin = PB3; // Power switch
+int AlivePin = PB4; // Keep-alive
 
 uint16_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
@@ -32,7 +33,7 @@ SystemState system_state;
 // --------------- TASKS ---------------
 typedef struct {
   TaskFunction func;
-  int16_t count;
+  int count;
   uint16_t max_count;
   uint16_t delay_millis;
   uint16_t previous_millis;
@@ -50,18 +51,19 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
         all_tasks[i].max_count = repeat;
         all_tasks[i].count = 0;
         all_tasks[i].delay_millis = delay;
-        all_tasks[i].previous_millis = millis() + start_delay;
+        all_tasks[i].previous_millis = millis() - start_delay;
       }
     }
     return 0; // No available free tasks to overwrite
   }
   else {
     // Or add a new task
+    DigiKeyboard.println("New task OK");
     all_tasks[num_tasks].func = function;
     all_tasks[num_tasks].max_count = repeat;
     all_tasks[num_tasks].count = 0;
     all_tasks[num_tasks].delay_millis = delay;
-    all_tasks[num_tasks].previous_millis = millis() + start_delay;
+    all_tasks[num_tasks].previous_millis = millis() - start_delay;
   }
   num_tasks++;
   return 1; // Successful
@@ -71,17 +73,18 @@ void ExecuteTasks() {
   if (num_tasks == 0) { return; }
   for (int i = 0; i < num_tasks; i++) {
     // If max_count has been reached, skip the task
-    if ((all_tasks[i].count >= all_tasks[i].max_count) && (all_tasks[i].max_count > -1)) {
+    if (all_tasks[i].count == all_tasks[i].max_count) {
       break;
     }
     // If the delay has elapsed
     if (all_tasks[i].previous_millis + all_tasks[i].delay_millis >= millis()) {
+      // Run the task
+      DigiKeyboard.println("func()");
+      all_tasks[i].func();
       // Reset the elapsed time
       all_tasks[i].previous_millis = millis();
       // Don't bother to count for infinite tasks
       if (all_tasks[i].max_count > -1) { all_tasks[i].count++; }
-      // Run the task
-      all_tasks[i].func();
     }
   }
 }
@@ -105,7 +108,8 @@ void flashLed(unsigned int delay, unsigned int n) {
  */
 void readBatteryVoltage() {
   // Read the voltage
-  DigiKeyboard.println("Reading the battery voltage.");
+  flashLed(300, 1);
+  DigiKeyboard.println("Reading battery...");
   voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
   if (vIndex > 4) {
@@ -120,9 +124,11 @@ void readBatteryVoltage() {
   system_state.battery_voltage = sum / 5;
 }
 
-/* Checks the state of the power switch */
+/* Checks the state of the power switch
+ */
 void checkState() {
-  DigiKeyboard.println("Checking the switch state.");
+  DigiKeyboard.println("Checking switch...");
+  
   int switch_state = digitalRead(SwitchPin);
   if (switch_state == 1) { // subject to change (inverse)
     system_state.current_state = SHUTDOWN;
@@ -160,39 +166,36 @@ void tws_receiveEvent(uint8_t howMany) {
 
 // --------------- START ---------------
 void setup() {
-  DigiKeyboard.println("...in setup()");
-
+  DigiKeyboard.println("Running...");
   system_state.current_state = BOOTUP;
-  DigiKeyboard.println("current_state = BOOTUP");
 
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
-
-  DigiKeyboard.println("I2C setup complete.");
+  DigiKeyboard.println("I2C OK");
 
   // Setup the pins
   pinMode(LEDPin, OUTPUT);
   pinMode(ADCPin, INPUT);
   pinMode(SwitchPin, INPUT);
   //pinMode(AlivePin, OUTPUT);
-  DigiKeyboard.println("Pin setup complete.");
+  DigiKeyboard.println("Pins OK");
 
   // Turn of the activity LED
   digitalWrite(LEDPin, LOW);
-  DigiKeyboard.println("LED off.");
+
   // Turn on the keep-alive
-  //digitalWrite(AlivePin, HIGH);
+  digitalWrite(AlivePin, HIGH);
 
   // Create some tasks
-  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
+  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
   int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
   if (task_result + task_result2 < 2) {
-    DigiKeyboard.println("One or more tasks could not be created.");
+    DigiKeyboard.println("Problem creating tasks!");
   }
   else {
-    DigiKeyboard.println("Tasks created successfully.");
+    DigiKeyboard.println("Tasks OK");
   }
 }
 
@@ -200,3 +203,4 @@ void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
+
