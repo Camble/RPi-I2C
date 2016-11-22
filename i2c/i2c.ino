@@ -41,8 +41,8 @@ Task all_tasks[MAX_TASKS];
 volatile int num_tasks = 0;
 
 int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
-  int current_task = num_tasks;
-  if (num_tasks == MAX_TASKS) {
+  if (num_tasks == MAX_TASKS) { // Too many tasks?
+    // Find one which is complete and overwrite it
     for (int i = 0; i < num_tasks; i++) {
       if (all_tasks[i].count >= all_tasks[i].max_count) {
         all_tasks[i].func = function;
@@ -52,26 +52,34 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
         all_tasks[i].previous_millis = millis() + start_delay;
       }
     }
-    return -1;
+    return 0; // No available free tasks to overwrite
   }
   else {
-    all_tasks[current_task].func = function;
-    all_tasks[current_task].max_count = repeat;
-    all_tasks[current_task].count = 0;
-    all_tasks[current_task].delay_millis = delay;
-    all_tasks[current_task].previous_millis = millis() + start_delay;
+    // Or add a new task
+    all_tasks[num_tasks].func = function;
+    all_tasks[num_tasks].max_count = repeat;
+    all_tasks[num_tasks].count = 0;
+    all_tasks[num_tasks].delay_millis = delay;
+    all_tasks[num_tasks].previous_millis = millis() + start_delay;
   }
   num_tasks++;
-  return 0;
+  return 1; // Successful
 }
 
 void ExecuteTasks() {
   if(num_tasks == 0) return;
   for (int i = 0; i < num_tasks; i++) {
-    if ((all_tasks[i].count >= all_tasks[i].max_count) && (all_tasks[i].max_count > -1)) { return; }
+    // If max_count has been reached, skip the task
+    if ((all_tasks[i].count >= all_tasks[i].max_count) && (all_tasks[i].max_count > -1)) {
+      break;
+    }
+    // If the delay has elapsed
     if (all_tasks[i].previous_millis + all_tasks[i].delay_millis >= millis()) {
+      // Reset the elapsed time
       all_tasks[i].previous_millis = millis();
-      if (all_tasks[i].max_count > -1) { all_tasks[i].count++; } // Don't bother to count for infinite tasks
+      // Don't bother to count for infinite tasks
+      if (all_tasks[i].max_count > -1) { all_tasks[i].count++; }
+      // Run the task
       all_tasks[i].func();
     }
   }
@@ -168,7 +176,7 @@ void setup() {
   // Create some tasks
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, 0, -1);
   int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
-  if ((task_result < 0) || (task_result2 < 0)) {
+  if (task_result + task_result2 < 2) {
     flashLed(100, 10);
   }
 }
