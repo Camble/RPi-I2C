@@ -4,13 +4,11 @@
 #define MAX_TASKS 8
 #define CHECK_STATE_INTERVAL 500
 #define CHECK_STATE_DELAY 5000
-#define BATTERY_READ_INTERVAL 2000
+#define BATTERY_READ_INTERVAL 1000
 #define BATTERY_READ_DELAY 0
 
 typedef void(*TaskFunction)(); // Function pointer
 
-bool activityLed = true;
-uint8_t LEDPin = 1;
 int ADCPin = A1;
 int SwitchPin = PB3;
 int AlivePin = PB4;
@@ -32,15 +30,15 @@ SystemState system_state;
 typedef struct {
   TaskFunction func;
   int count;
-  uint16_t max_count;
-  uint16_t delay_millis;
+  int max_count;
+  uint16_t interval_millis;
   uint64_t previous_millis;
 } Task;
 
 Task all_tasks[MAX_TASKS];
 volatile uint8_t num_tasks = 0;
 
-int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
+int createTask(TaskFunction function, int interval, int delay, int repeat) {
   if (num_tasks == MAX_TASKS) { // Too many tasks?
     // Find one which is complete & overwrite it
     for (int i = 0; i < num_tasks; i++) {
@@ -48,8 +46,8 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
         all_tasks[i].func = function;
         all_tasks[i].max_count = repeat;
         all_tasks[i].count = 0;
-        all_tasks[i].delay_millis = delay;
-        all_tasks[i].previous_millis = millis() + start_delay;
+        all_tasks[i].interval_millis = interval;
+        all_tasks[i].previous_millis = millis() - interval + delay;
         return 1; // Success
       }
     }
@@ -60,8 +58,8 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
     all_tasks[num_tasks].func = function;
     all_tasks[num_tasks].max_count = repeat;
     all_tasks[num_tasks].count = 0;
-    all_tasks[num_tasks].delay_millis = delay;
-    all_tasks[num_tasks].previous_millis = millis() + start_delay;
+    all_tasks[num_tasks].interval_millis = interval;
+    all_tasks[num_tasks].previous_millis = millis() - interval + delay;
   }
   num_tasks += 1;
   return 1; // Success
@@ -70,40 +68,21 @@ int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
 void ExecuteTasks() {
   if (num_tasks == 0) { return; }
   for (int i = 0; i <= num_tasks; i++) {
-    // If max_count is reached, skip
-    if (all_tasks[i].count == all_tasks[i].max_count) {
-      break;
-    }
-    if (all_tasks[i].previous_millis + all_tasks[i].delay_millis <= millis()) {
-      // Run the task
-      all_tasks[i].func();
-      // Reset the elapsed time
-      all_tasks[i].previous_millis = millis();
-      // Don't count infinite tasks
-      if (all_tasks[i].max_count > -1) { all_tasks[i].count++; }
+    // Execute infinite tasks and those whose max_count has not been reached
+    if ((all_tasks[i].max_count == -1) || (all_tasks[i].count < all_tasks[i].max_count)) {
+      if (all_tasks[i].previous_millis + all_tasks[i].interval_millis <= millis()) {
+        // Reset the elapsed time
+        all_tasks[i].previous_millis = millis();
+        // Don't count infinite tasks
+        if (all_tasks[i].max_count > -1) { all_tasks[i].count += 1; }
+        // Run the task
+        all_tasks[i].func();
+      }
     }
   }
 }
 
 // ----- FUNCTIONS -----
-/* Flashes the activity LED
- * This implimentation uses createTask() to queue up
- * the LED going high and low at set intervals
-*/
-void flashLed(uint8_t delay, uint8_t n) {
-  if (activityLed == true) {
-    createTask(flashON, delay*2, 0, n);
-    createTask(flashOFF, delay*2, delay, n);
-  }
-}
-
-void flashON() {
-  digitalWrite(LEDPin, HIGH);
-}
-
-void flashOFF() {
-  digitalWrite(LEDPin, LOW);
-}
 
 /* Reads the pin voltage and stores
  * the average of thelast 5 reads in
@@ -111,7 +90,6 @@ void flashOFF() {
  */
 void readBatteryVoltage() {
   // Read the voltage
-  //flashLed(300, 3);
   DigiKeyboard.println("Reading battery...");
   voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
@@ -152,7 +130,6 @@ void tws_requestEvent() {
   // Write buffer to I2C
   for (int i = 0; i < sizeof(buffer); i++) {
     TinyWireS.send(buffer[i]);
-    flashLed(75, 1);
   }
 }
 /* Used to take instructions from the I2C master python script
@@ -161,7 +138,6 @@ void tws_requestEvent() {
  */
 void tws_receiveEvent(uint8_t howMany) {
   while(TinyWireS.available()) {
-    flashLed(150, 2);
     int data = TinyWireS.receive();
   }
 }
@@ -172,8 +148,6 @@ void setup() {
   system_state.current_state = BOOTUP;
 
   // Initialise the pins
-  pinMode(LEDPin, OUTPUT);
-  digitalWrite(LEDPin, LOW);
   pinMode(ADCPin, INPUT);
   pinMode(SwitchPin, INPUT);
   //pinMode(AlivePin, OUTPUT);
@@ -183,20 +157,20 @@ void setup() {
   // Create some tasks
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
   int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
+  
   if (task_result + task_result2 == 2) {
     DigiKeyboard.println("Tasks OK");
   }
   else {
     DigiKeyboard.println("Problem creating one or more tasks!");
   }
-
+  
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
   DigiKeyboard.println("I2C OK");
 
-  flashLed(1000, 10);
 }
 
 void loop() {
