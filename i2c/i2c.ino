@@ -4,23 +4,23 @@
 #define MAX_TASKS 4
 #define CHECK_STATE_INTERVAL 500
 #define CHECK_STATE_DELAY 5000
-#define BATTERY_READ_INTERVAL 5000
+#define BATTERY_READ_INTERVAL 2000
 #define BATTERY_READ_DELAY 0
 
-typedef void(*TaskFunction)(); // Function pointer for tasks
+typedef void(*TaskFunction)(); // Function pointer
 
 bool activityLed = true;
-int LEDPin = 1; // Onboard LED
-int ADCPin = A1; // ADC0
-int SwitchPin = PB3; // Power switch
-int AlivePin = PB4; // Keep-alive
+int LEDPin = 1;
+int ADCPin = A1;
+int SwitchPin = PB3;
+int AlivePin = PB4;
 
 uint16_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
 
 uint16_t data = 0;
 
-// --------------- STATE ---------------
+// ----- STATE -----
 typedef enum state {BOOTUP, RUNNING, SHUTDOWN} State;
 
 typedef struct {
@@ -30,66 +30,64 @@ typedef struct {
 
 SystemState system_state;
 
-// --------------- TASKS ---------------
+// ----- TASKS -----
 typedef struct {
   TaskFunction func;
   int count;
   uint16_t max_count;
   uint16_t delay_millis;
-  uint16_t previous_millis;
+  uint64_t previous_millis;
 } Task;
 
 Task all_tasks[MAX_TASKS];
-volatile int num_tasks = 0;
+volatile uint8_t num_tasks = 0;
 
 int createTask(TaskFunction function, int delay, int start_delay, int repeat) {
   if (num_tasks == MAX_TASKS) { // Too many tasks?
-    // Find one which is complete and overwrite it
+    // Find one which is complete & overwrite it
     for (int i = 0; i < num_tasks; i++) {
       if (all_tasks[i].count >= all_tasks[i].max_count) {
         all_tasks[i].func = function;
         all_tasks[i].max_count = repeat;
         all_tasks[i].count = 0;
         all_tasks[i].delay_millis = delay;
-        all_tasks[i].previous_millis = millis() - start_delay;
+        all_tasks[i].previous_millis = millis() + start_delay;
+        return 1; // Success
       }
     }
-    return 0; // No available free tasks to overwrite
+    return 0; // Failure
   }
   else {
     // Or add a new task
-    DigiKeyboard.println("New task OK");
     all_tasks[num_tasks].func = function;
     all_tasks[num_tasks].max_count = repeat;
     all_tasks[num_tasks].count = 0;
     all_tasks[num_tasks].delay_millis = delay;
-    all_tasks[num_tasks].previous_millis = millis() - start_delay;
+    all_tasks[num_tasks].previous_millis = millis() + start_delay;
   }
-  num_tasks++;
-  return 1; // Successful
+  num_tasks += 1;
+  return 1; // Success
 }
 
 void ExecuteTasks() {
   if (num_tasks == 0) { return; }
-  for (int i = 0; i < num_tasks; i++) {
-    // If max_count has been reached, skip the task
+  for (int i = 0; i <= num_tasks; i++) {
+    // If max_count is reached, skip
     if (all_tasks[i].count == all_tasks[i].max_count) {
       break;
     }
-    // If the delay has elapsed
-    if (all_tasks[i].previous_millis + all_tasks[i].delay_millis >= millis()) {
+    if (all_tasks[i].previous_millis + all_tasks[i].delay_millis <= millis()) {
       // Run the task
-      DigiKeyboard.println("func()");
       all_tasks[i].func();
       // Reset the elapsed time
       all_tasks[i].previous_millis = millis();
-      // Don't bother to count for infinite tasks
+      // Don't count infinite tasks
       if (all_tasks[i].max_count > -1) { all_tasks[i].count++; }
     }
   }
 }
 
-// --------------- FUNCTIONS ---------------
+// ----- FUNCTIONS -----
 /* Flashes the activity LED */
 // TODO re-impliment this if tws_delay causes problems
 void flashLed(unsigned int delay, unsigned int n) {
@@ -108,7 +106,6 @@ void flashLed(unsigned int delay, unsigned int n) {
  */
 void readBatteryVoltage() {
   // Read the voltage
-  flashLed(300, 1);
   DigiKeyboard.println("Reading battery...");
   voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
@@ -128,7 +125,7 @@ void readBatteryVoltage() {
  */
 void checkState() {
   DigiKeyboard.println("Checking switch...");
-  
+
   int switch_state = digitalRead(SwitchPin);
   if (switch_state == 1) { // subject to change (inverse)
     system_state.current_state = SHUTDOWN;
@@ -138,9 +135,8 @@ void checkState() {
   }
 }
 
-// --------------- I2C ---------------
-/* Somehow writes the SystemState struct to the I2C bus
- */
+// ----- I2C -----
+/* Writes the SystemState struct to the I2C bus */
 void tws_requestEvent() {
   // Copy the system_state struct into a byte array
   void* p = &system_state;
@@ -164,7 +160,7 @@ void tws_receiveEvent(uint8_t howMany) {
   }
 }
 
-// --------------- START ---------------
+// ----- START -----
 void setup() {
   DigiKeyboard.println("Running...");
   system_state.current_state = BOOTUP;
@@ -203,4 +199,3 @@ void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
-
