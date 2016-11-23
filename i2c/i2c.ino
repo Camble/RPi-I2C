@@ -165,37 +165,35 @@ void setup() {
   DigiKeyboard.println("Running...");
   system_state.current_state = BOOTUP;
 
+  // Initialise the pins
+  pinMode(LEDPin, OUTPUT);
+  digitalWrite(LEDPin, LOW);
+  pinMode(ADCPin, INPUT);
+  pinMode(SwitchPin, INPUT);
+  //pinMode(AlivePin, OUTPUT);
+  //digitalWrite(AlivePin, HIGH);
+  DigiKeyboard.println("Pins OK");
+
+  // Create some tasks
+  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
+  int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
+  if (task_result + task_result2 == 2) {
+    DigiKeyboard.println("Tasks OK");
+  }
+  else {
+    DigiKeyboard.println("Problem creating one or more tasks!");
+  }
+
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
   DigiKeyboard.println("I2C OK");
-
-  // Setup the pins
-  pinMode(LEDPin, OUTPUT);
-  pinMode(ADCPin, INPUT);
-  pinMode(SwitchPin, INPUT);
-  //pinMode(AlivePin, OUTPUT);
-  DigiKeyboard.println("Pins OK");
-
-  // Turn of the activity LED
-  digitalWrite(LEDPin, LOW);
-
-  // Turn on the keep-alive
-  digitalWrite(AlivePin, HIGH);
-
-  // Create some tasks
-  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
-  int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
-  if (task_result + task_result2 < 2) {
-    DigiKeyboard.println("Problem creating tasks!");
-  }
-  else {
-    DigiKeyboard.println("Tasks OK");
-  }
 }
 
 void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
+
+
