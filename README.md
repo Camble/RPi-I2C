@@ -2,7 +2,7 @@
 
 Background
 ----------
-With the Raspberry Pi lacking analog pins, there is currently no way to actively monitor battery voltage in the GameBoy Zero (or any other Pi projects for that matter). Using an ATTiny85 chip or similar chip and the I²C bus, it is possible to request analog data using only two GPIO pins.
+With the Raspberry Pi lacking analog pins, there is currently no way to actively monitor battery voltage in the GameBoy Zero (or any other Pi projects for that matter). Using an ATTiny85 chip or similar and the I²C bus, it is possible to request analog data using only two GPIO pins.
 
 Required Hardware and Components
 --------------------------------
@@ -11,11 +11,11 @@ Required Hardware and Components
 
 Current State
 -------------
-This repo is currently for experimentation and testing.
+At the moment, the C code creates two independent tasks, one to check the power switch and one to read and store the battery voltage. The timing of these can be modified. I have debugging through the DigiKeyboard library, which allows output via USB to a notepad window.
 
-Going Forward
+Next Up...
 -------------
-The end result will be a script which periodically polls the ATTiny85 for analog data. This data can beused to display a frame buffer overlay on the screen, such as a battery indicator as an icon and/or percentage.
+I'll be looking to change how I've implemented I²C. Information stored in a struct can be written to a byte array. The python script will then be able to request this information (around 4 bytes) on a regular basis. More information can probably be added, but the ATTiny85 is limited. For additional functionality, an ATTiny87 may be required.
 
 Links
 -----
