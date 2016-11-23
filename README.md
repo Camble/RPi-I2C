@@ -2,7 +2,7 @@
 
 Background
 ----------
-With the Raspberry Pi lacking analog pins, there is currently no way to actively monitor battery voltage in the GameBoy Zero (or any other Pi projects for that matter). Using an ATTiny85 chip or similar chip and the I²C bus, it is possible to request analog data using only two GPIO pins.
+With the Raspberry Pi lacking analog pins, there is currently no way to actively monitor battery voltage in the GameBoy Zero (or any other Pi projects for that matter). Using an ATTiny85 chip or similar and the I²C bus, it is possible to request analog data using only two GPIO pins.
 
 Required Hardware and Components
 --------------------------------
