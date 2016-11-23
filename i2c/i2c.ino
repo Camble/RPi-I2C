@@ -1,7 +1,7 @@
 #include <DigiKeyboard.h>
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
-#define MAX_TASKS 4
+#define MAX_TASKS 8
 #define CHECK_STATE_INTERVAL 500
 #define CHECK_STATE_DELAY 5000
 #define BATTERY_READ_INTERVAL 2000
@@ -10,15 +10,13 @@
 typedef void(*TaskFunction)(); // Function pointer
 
 bool activityLed = true;
-int LEDPin = 1;
+uint8_t LEDPin = 1;
 int ADCPin = A1;
 int SwitchPin = PB3;
 int AlivePin = PB4;
 
-uint16_t vIndex = 1;
+uint8_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
-
-uint16_t data = 0;
 
 // ----- STATE -----
 typedef enum state {BOOTUP, RUNNING, SHUTDOWN} State;
@@ -88,16 +86,23 @@ void ExecuteTasks() {
 }
 
 // ----- FUNCTIONS -----
-/* Flashes the activity LED */
-// TODO re-impliment this if tws_delay causes problems
-void flashLed(unsigned int delay, unsigned int n) {
+/* Flashes the activity LED
+ * This implimentation uses createTask() to queue up
+ * the LED going high and low at set intervals
+*/
+void flashLed(uint8_t delay, uint8_t n) {
   if (activityLed == true) {
-    for (int i = 0; i <= n; i++) {
-      digitalWrite(LEDPin, HIGH);
-      tws_delay(delay);
-      digitalWrite(LEDPin, LOW);
-    }
+    createTask(flashON, delay*2, 0, n);
+    createTask(flashOFF, delay*2, delay, n);
   }
+}
+
+void flashON() {
+  digitalWrite(LEDPin, HIGH);
+}
+
+void flashOFF() {
+  digitalWrite(LEDPin, LOW);
 }
 
 /* Reads the pin voltage and stores
@@ -106,6 +111,7 @@ void flashLed(unsigned int delay, unsigned int n) {
  */
 void readBatteryVoltage() {
   // Read the voltage
+  //flashLed(300, 3);
   DigiKeyboard.println("Reading battery...");
   voltages[vIndex] = analogRead(ADCPin);
   vIndex++;
@@ -156,7 +162,7 @@ void tws_requestEvent() {
 void tws_receiveEvent(uint8_t howMany) {
   while(TinyWireS.available()) {
     flashLed(150, 2);
-    data = TinyWireS.receive();
+    int data = TinyWireS.receive();
   }
 }
 
@@ -189,6 +195,8 @@ void setup() {
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
   DigiKeyboard.println("I2C OK");
+
+  flashLed(1000, 10);
 }
 
 void loop() {
