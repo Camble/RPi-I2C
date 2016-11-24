@@ -1,9 +1,7 @@
 #include <DigiKeyboard.h>
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
-#define MAX_TASKS 8
-#define CHECK_STATE_INTERVAL 500
-#define CHECK_STATE_DELAY 5000
+#define MAX_TASKS 4
 #define BATTERY_READ_INTERVAL 1000
 #define BATTERY_READ_DELAY 0
 
@@ -105,20 +103,6 @@ void readBatteryVoltage() {
   system_state.battery_voltage = sum / 5;
 }
 
-/* Checks the state of the power switch
- */
-void checkState() {
-  DigiKeyboard.println("Checking switch...");
-
-  int switch_state = digitalRead(SwitchPin);
-  if (switch_state == 1) { // subject to change (inverse)
-    system_state.current_state = SHUTDOWN;
-  }
-  else {
-    system_state.current_state = RUNNING;
-  }
-}
-
 // ----- I2C -----
 /* Writes the SystemState struct to the I2C bus */
 void tws_requestEvent() {
@@ -154,17 +138,16 @@ void setup() {
   //digitalWrite(AlivePin, HIGH);
   DigiKeyboard.println("Pins OK");
 
-  // Create some tasks
+  // Create task(s)
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
-  int task_result2 = createTask(checkState, CHECK_STATE_INTERVAL, CHECK_STATE_DELAY, -1);
-  
-  if (task_result + task_result2 == 2) {
+
+  if (task_result == 1) {
     DigiKeyboard.println("Tasks OK");
   }
   else {
     DigiKeyboard.println("Problem creating one or more tasks!");
   }
-  
+
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
@@ -177,5 +160,3 @@ void loop() {
   ExecuteTasks();
   TinyWireS_stop_check();
 }
-
-
