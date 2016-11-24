@@ -15,7 +15,7 @@ At the moment, the C code creates two independent tasks, one to check the power 
 
 Next Up...
 -------------
-I'll be looking to change how I've implemented I²C. Information stored in a struct can be written to a byte array. The python script will then be able to request this information (around 4 bytes) on a regular basis. More information can probably be added, but the ATTiny85 is limited. For additional functionality, an ATTiny67 may be required.
+I'll be looking to change how I've implemented I²C. Information stored in a struct can be written to a byte array. The python script will then be able to request this information (around 4 bytes) on a regular basis. More information can probably be added, but the ATTiny85 is limited. For additional functionality, an ATTiny167 may be required.
 
 Links
 -----
