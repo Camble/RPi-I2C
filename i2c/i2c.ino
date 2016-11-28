@@ -8,8 +8,6 @@
 typedef void(*TaskFunction)(); // Function pointer
 
 int ADCPin = A1;
-int SwitchPin = PB3;
-int AlivePin = PB4;
 
 uint8_t vIndex = 1;
 uint16_t voltages[5] = { 0 };
@@ -133,9 +131,6 @@ void setup() {
 
   // Initialise the pins
   pinMode(ADCPin, INPUT);
-  pinMode(SwitchPin, INPUT);
-  //pinMode(AlivePin, OUTPUT);
-  //digitalWrite(AlivePin, HIGH);
   DigiKeyboard.println("Pins OK");
 
   // Create task(s)
@@ -145,7 +140,7 @@ void setup() {
     DigiKeyboard.println("Tasks OK");
   }
   else {
-    DigiKeyboard.println("Problem creating one or more tasks!");
+    DigiKeyboard.println("Problem creating task(s)!");
   }
 
   // Setup the I2C bus
