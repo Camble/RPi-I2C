@@ -1,7 +1,6 @@
 //#include <DigiKeyboard.h>
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
-#define MAX_TASKS 4
 #define BATTERY_READ_INTERVAL 1000
 #define BATTERY_READ_DELAY 0
 #define BATTERY_NUMREADINGS 5
@@ -41,9 +40,7 @@ int createTask(TaskFunction function, int interval, int delay) {
 
 void executeTask() {
   if (battery_task.previous_millis + battery_task.interval_millis <= millis()) {
-    // Reset the elapsed time
     battery_task.previous_millis = millis();
-    // Run the task
     battery_task.func();
   }
 }
@@ -51,8 +48,7 @@ void executeTask() {
 // ----- FUNCTIONS -----
 
 /* Reads the pin voltage and stores
- * the average of thelast 5 reads in
- * SystemState.battery_voltage
+ * the average in system_state.battery_voltage
  */
 void readBatteryVoltage() {
   // Read the voltage
