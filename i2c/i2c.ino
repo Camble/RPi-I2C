@@ -1,4 +1,4 @@
-#include <DigiKeyboard.h>
+//#include <DigiKeyboard.h>
 #include <TinyWireS.h>
 #define I2C_SLAVE_ADDRESS 0x4
 #define MAX_TASKS 4
@@ -61,7 +61,7 @@ void readBatteryVoltage() {
   char str[8];
   dtostrf(v, 4, 2, str);
   strcat(buffer, str);
-  DigiKeyboard.println(buffer);
+//  DigiKeyboard.println(buffer);
 
   vIndex++;
   if (vIndex > 4) {
@@ -101,32 +101,33 @@ void tws_receiveEvent(uint8_t howMany) {
 
 // ----- START -----
 void setup() {
-  DigiKeyboard.println("Running...");
+//  DigiKeyboard.println("Running...");
   system_state.current_state = BOOTUP;
 
   // Initialise the pins
   pinMode(ADCPin, INPUT);
-  DigiKeyboard.println("Pins OK");
+//  DigiKeyboard.println("Pins OK");
 
   // Create task(s)
   int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY);
 
   if (task_result == 1) {
-    DigiKeyboard.println("Task OK");
+//    DigiKeyboard.println("Task OK");
   }
   else {
-    DigiKeyboard.println("Problem creating task!");
+//    DigiKeyboard.println("Problem creating task!");
   }
 
   // Setup the I2C bus
   TinyWireS.begin(I2C_SLAVE_ADDRESS);
   TinyWireS.onReceive(tws_receiveEvent);
   TinyWireS.onRequest(tws_requestEvent);
-  DigiKeyboard.println("I2C OK");
+//  DigiKeyboard.println("I2C OK");
 
 }
 
 void loop() {
-  executeTasks();
+  executeTask();
   TinyWireS_stop_check();
 }
+
