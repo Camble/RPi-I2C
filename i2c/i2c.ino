@@ -4,13 +4,14 @@
 #define MAX_TASKS 4
 #define BATTERY_READ_INTERVAL 1000
 #define BATTERY_READ_DELAY 0
+#define BATTERY_NUMREADINGS 5
 
 typedef void(*TaskFunction)(); // Function pointer
 
 int ADCPin = A1;
 
 uint8_t vIndex = 1;
-uint16_t voltages[5] = { 0 };
+uint16_t voltages[BATTERY_NUMREADINGS] = { 0 };
 
 // ----- STATE -----
 typedef enum state {BOOTUP, RUNNING, SHUTDOWN} State;
@@ -64,16 +65,16 @@ void readBatteryVoltage() {
 //  DigiKeyboard.println(buffer);
 
   vIndex++;
-  if (vIndex > 4) {
+  if (vIndex >= BATTERY_NUMREADINGS) {
     vIndex = 0;
   }
   // Total the values
   int sum = 0;
-  for (int i = 1; i < 5; i++) {
+  for (int i = 1; i < BATTERY_NUMREADINGS; i++) {
     sum += voltages[i];
   }
   // Re-calculate the average
-  system_state.battery_voltage = sum / 5;
+  system_state.battery_voltage = sum / BATTERY_NUMREADINGS;
 }
 
 // ----- I2C -----
@@ -130,4 +131,3 @@ void loop() {
   executeTask();
   TinyWireS_stop_check();
 }
-
