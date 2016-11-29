@@ -31,14 +31,14 @@ typedef struct {
 
 Task battery_task;
 
-int CreateTask(TaskFunction function, int interval, int delay) {
+int createTask(TaskFunction function, int interval, int delay) {
   battery_task.func = function;
   battery_task.interval_millis = interval;
   battery_task.previous_millis = millis() - interval + delay;
   return 1; // Success
 }
 
-void ExecuteTask() {
+void executeTask() {
   if (battery_task.previous_millis + battery_task.interval_millis <= millis()) {
     // Reset the elapsed time
     battery_task.previous_millis = millis();
@@ -109,7 +109,7 @@ void setup() {
   DigiKeyboard.println("Pins OK");
 
   // Create task(s)
-  int task_result = CreateTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY);
+  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY);
 
   if (task_result == 1) {
     DigiKeyboard.println("Task OK");
@@ -127,6 +127,6 @@ void setup() {
 }
 
 void loop() {
-  ExecuteTasks();
+  executeTasks();
   TinyWireS_stop_check();
 }
