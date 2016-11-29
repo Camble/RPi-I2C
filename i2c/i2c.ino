@@ -25,56 +25,25 @@ SystemState system_state;
 // ----- TASKS -----
 typedef struct {
   TaskFunction func;
-  int count;
-  int max_count;
   uint16_t interval_millis;
   uint64_t previous_millis;
 } Task;
 
-Task all_tasks[MAX_TASKS];
-volatile uint8_t num_tasks = 0;
+Task battery_task;
 
-int createTask(TaskFunction function, int interval, int delay, int repeat) {
-  if (num_tasks == MAX_TASKS) { // Too many tasks?
-    // Find one which is complete & overwrite it
-    for (int i = 0; i < num_tasks; i++) {
-      if (all_tasks[i].count >= all_tasks[i].max_count) {
-        all_tasks[i].func = function;
-        all_tasks[i].max_count = repeat;
-        all_tasks[i].count = 0;
-        all_tasks[i].interval_millis = interval;
-        all_tasks[i].previous_millis = millis() - interval + delay;
-        return 1; // Success
-      }
-    }
-    return 0; // Failure
-  }
-  else {
-    // Or add a new task
-    all_tasks[num_tasks].func = function;
-    all_tasks[num_tasks].max_count = repeat;
-    all_tasks[num_tasks].count = 0;
-    all_tasks[num_tasks].interval_millis = interval;
-    all_tasks[num_tasks].previous_millis = millis() - interval + delay;
-  }
-  num_tasks += 1;
+int CreateTask(TaskFunction function, int interval, int delay) {
+  battery_task.func = function;
+  battery_task.interval_millis = interval;
+  battery_task.previous_millis = millis() - interval + delay;
   return 1; // Success
 }
 
-void ExecuteTasks() {
-  if (num_tasks == 0) { return; }
-  for (int i = 0; i <= num_tasks; i++) {
-    // Execute infinite tasks and those whose max_count has not been reached
-    if ((all_tasks[i].max_count == -1) || (all_tasks[i].count < all_tasks[i].max_count)) {
-      if (all_tasks[i].previous_millis + all_tasks[i].interval_millis <= millis()) {
-        // Reset the elapsed time
-        all_tasks[i].previous_millis = millis();
-        // Don't count infinite tasks
-        if (all_tasks[i].max_count > -1) { all_tasks[i].count += 1; }
-        // Run the task
-        all_tasks[i].func();
-      }
-    }
+void ExecuteTask() {
+  if (battery_task.previous_millis + battery_task.interval_millis <= millis()) {
+    // Reset the elapsed time
+    battery_task.previous_millis = millis();
+    // Run the task
+    battery_task.func();
   }
 }
 
@@ -86,8 +55,14 @@ void ExecuteTasks() {
  */
 void readBatteryVoltage() {
   // Read the voltage
-  DigiKeyboard.println("Reading battery...");
   voltages[vIndex] = analogRead(ADCPin);
+  float v = voltages[vIndex] * (5.00 / 1023.00);
+  char buffer[16] = "Battery: ";
+  char str[8];
+  dtostrf(v, 4, 2, str);
+  strcat(buffer, str);
+  DigiKeyboard.println(buffer);
+
   vIndex++;
   if (vIndex > 4) {
     vIndex = 0;
@@ -134,13 +109,13 @@ void setup() {
   DigiKeyboard.println("Pins OK");
 
   // Create task(s)
-  int task_result = createTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY, -1);
+  int task_result = CreateTask(readBatteryVoltage, BATTERY_READ_INTERVAL, BATTERY_READ_DELAY);
 
   if (task_result == 1) {
-    DigiKeyboard.println("Tasks OK");
+    DigiKeyboard.println("Task OK");
   }
   else {
-    DigiKeyboard.println("Problem creating task(s)!");
+    DigiKeyboard.println("Problem creating task!");
   }
 
   // Setup the I2C bus
