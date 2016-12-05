@@ -13,11 +13,11 @@ Current State
 -------------
 At the moment, the C code periodically reads the battery voltage and stores an average of the last few values. This version no longer monitors the power switch. I have debugging through the DigiKeyboard library, which allows output via USB to a notepad window.
 
+I've trimmed down the task manager from this version. It's flexible and quite useful, but takes up a lot of space on the MCU and this only needs to do one thing, monitor the battery.
+
 Next Up...
 -------------
-I'll be removing the task manager from this version. It's flexible and quite useful, but takes up a lot of space on the MCU and this only needs to do one thing, monitor the battery.
-
-I'll be looking to expand on how I've implemented I²C. Information stored in a struct can be written to a byte array. The python script will then be able to request this information (around 4 bytes) on a regular basis. More information can probably be added, but the ATTiny85 is limited. For additional functionality, an ATTiny167 may be required.
+I'm working on getting the python script to pull back the voltage over I²C.
 
 Links
 -----
