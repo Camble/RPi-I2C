@@ -30,7 +30,7 @@ def configSlave(value):
 def getVoltage():
   system_state = ""
   for i in range(0,4):
-    system_state[i] += chr(bus.read_byte(address))
+    system_state += chr(bus.read_byte(address))
 
 def compareVoltage():
 # warn if warn_voltage reached
