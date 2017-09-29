@@ -12,7 +12,7 @@ import smbus
 import struct
 import time
 
-ptvsd.enable_attach('secret')
+ptvsd.enable_attach('secret', address = ('192.168.0.17', 5678))
 bus = smbus.SMBus(1)
 system_state = ""
 voltage = 0
