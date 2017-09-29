@@ -8,12 +8,11 @@
 # source: https://github.com/Camble/RPi-I2C
 
 import ptvsd
-ptvsd.enable_attach('secret')
-
 import smbus
 import struct
 import time
 
+ptvsd.enable_attach('secret')
 bus = smbus.SMBus(1)
 system_state = ""
 voltage = 0
