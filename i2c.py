@@ -7,6 +7,7 @@
 # version: 0.1
 # source: https://github.com/Camble/RPi-I2C
 
+import vtvsd
 import smbus
 import struct
 import time
@@ -30,13 +31,14 @@ def getVoltage():
   for i in range(len(system_state)):
     system_state[i] += chr(bus.read_byte(address))
 
- def compareVoltage():
-  # warn if warn_voltage reached
-  # shutdown shutdown_voltage reached
+def compareVoltage():
+# warn if warn_voltage reached
+# shutdown shutdown_voltage reached
+  pass
 
 while True:
   time.sleep(0.1)
   getVoltage()
   compareVoltage()
 
-  print "system_state contents: " + str(system_state)
+  print ("system_state contents: ") + str(system_state)
