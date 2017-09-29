@@ -28,9 +28,11 @@ def configSlave(value):
   return -1
 
 def getVoltage():
-  system_state = ""
+  data = ""
   for i in range(0,4):
-    system_state[i] = chr(bus.read_byte(address))
+    data[i] += chr(bus.read_byte(address))
+  
+  print(data)
 
 def compareVoltage():
 # warn if warn_voltage reached
@@ -42,4 +44,4 @@ while True:
   getVoltage()
   compareVoltage()
 
-  print ("system_state contents: ") + str(system_state)
+  #print ("system_state contents: ") + str(system_state)
