@@ -28,9 +28,10 @@ def configSlave(value):
   return -1
 
 def getVoltage():
-  data = ""
+  data = [None] * 4
+
   for i in range(0,4):
-    data[i] += chr(bus.read_byte(address))
+    data[i] = bus.read_byte(address)
   
   print(data)
 
