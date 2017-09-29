@@ -7,7 +7,9 @@
 # version: 0.1
 # source: https://github.com/Camble/RPi-I2C
 
-import vtvsd
+import ptvsd
+ptvsd.enable_attach('secret')
+
 import smbus
 import struct
 import time
