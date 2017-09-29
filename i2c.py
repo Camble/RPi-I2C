@@ -29,7 +29,7 @@ def configSlave(value):
 
 def getVoltage():
   system_state = ""
-  for i in range(len(system_state)):
+  for i in range(0,4):
     system_state[i] += chr(bus.read_byte(address))
 
 def compareVoltage():
