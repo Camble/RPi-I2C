@@ -30,7 +30,7 @@ def configSlave(value):
 def getVoltage():
   data = ""
   for i in range(0,4):
-    data += chr(bus.read_byte(address))
+    data[i] += chr(bus.read_byte(address))
   
   print(data)
 
